@@ -17,6 +17,7 @@ from spacy.training import Example
 import pickle
 import matplotlib.pyplot as plt
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+import numpy as np
 
 
 # nlp = Language.from_config(config)
@@ -171,17 +172,41 @@ nlp = en_core_web_lg.load()
 with open('revision_data.pkl', 'rb') as f:
     TRAIN_REVISION_DATA = pickle.load(f)
 
-with open('parrot2.pkl', 'rb') as f:
-    TRAIN_FOOD_DATA_COMBINED = pickle.load(f)
+if False:
+    with open('food_entity_list_pickled.pkl', 'rb') as f:
+        TRAIN_FOOD_DATA_COMBINED = pickle.load(f)
+
+with open('food_entity_list_dict_pickled.pkl', 'rb') as f:
+      train_food_dict = pickle.load(f)
+
+
+# print(TRAIN_FOOD_DATA_COMBINED[0])
+# print(TRAIN_FOOD_DATA_COMBINED[5])
+# print('correct data')
+# print(TRAIN_REVISION_DATA[0])
+#
+# # print the length of the food training data
+# print("FOOD", len(TRAIN_FOOD_DATA_COMBINED))
+
+TRAIN_FOOD_DATA_COMBINED = []
+print(train_food_dict[0][0])
+for key, training_list in train_food_dict.items():
+    try:
+        current_train_list = random.sample(training_list, 600)
+    except ValueError:
+        current_train_list = training_list
+    for ex in current_train_list:
+        TRAIN_FOOD_DATA_COMBINED.append(ex)
+    print(key)
+    print(len(current_train_list))
+    # print(current_train_list)
+    # TRAIN_FOOD_DATA_COMBINED.append(current_train_list)
+
+# TRAIN_FOOD_DATA_COMBINED = random.sample(TRAIN_FOOD_DATA_COMBINED, 6000)
+# TRAIN_FOOD_DATA_COMBINED = list(np.array(TRAIN_FOOD_DATA_COMBINED).flatten())
+print(type(TRAIN_FOOD_DATA_COMBINED))
+print(type(TRAIN_FOOD_DATA_COMBINED[0]))
 print(TRAIN_FOOD_DATA_COMBINED[0])
-print(TRAIN_FOOD_DATA_COMBINED[5])
-print('correct data')
-print(TRAIN_REVISION_DATA[0])
-
-# print the length of the food training data
-print("FOOD", len(TRAIN_FOOD_DATA_COMBINED))
-TRAIN_FOOD_DATA_COMBINED = random.sample(TRAIN_FOOD_DATA_COMBINED, 3500)
-
 # for tup in TRAIN_FOOD_DATA_COMBINED:
 #     food_tup_list = tup[1]['entities']
 #     sent = tup[0]
@@ -192,6 +217,9 @@ TRAIN_FOOD_DATA_COMBINED = random.sample(TRAIN_FOOD_DATA_COMBINED, 3500)
 
 # print the length of the revision training data
 print("REVISION", len(TRAIN_REVISION_DATA))
+print(type(TRAIN_REVISION_DATA))
+print(type(TRAIN_REVISION_DATA[0]))
+print(TRAIN_REVISION_DATA[0])
 
 # join and print the combined length
 TRAIN_DATA = TRAIN_REVISION_DATA + TRAIN_FOOD_DATA_COMBINED
@@ -208,7 +236,7 @@ other_pipes = [pipe for pipe in nlp.pipe_names if pipe not in pipe_exceptions]
 print(other_pipes)
 
 # start the training loop, only training NER
-epochs = 20
+epochs = 15
 optimizer = nlp.resume_training()
 with nlp.disable_pipes(*other_pipes), warnings.catch_warnings():
     warnings.filterwarnings("once", category=UserWarning, module='spacy')
@@ -226,8 +254,8 @@ with nlp.disable_pipes(*other_pipes), warnings.catch_warnings():
                     doc = nlp.make_doc(text)
                     example = Example.from_dict(doc, annotations)
                     nlp.update([example], sgd=optimizer, drop=0.35, losses=losses)
-            except ValueError:
-                print("something went wrong")
+            except Exception as er:
+                print(er)
 
         print("Losses ({}/{})".format(epoch + 1, epochs), losses)
 
@@ -238,6 +266,7 @@ for token in doc2:
 for ent in doc1.ents:
     print(ent.text, ent.start_char, ent.end_char, ent.label_)
 # nlp.to_disk("./models/foodentity")
+pickle.dump(nlp, open( "nlp.p", "wb" ))
 
 story_dir = "sitemap/storyjsons"
 food_ent_list = []
@@ -259,5 +288,5 @@ for story_file_name in os.listdir(story_dir):
     except(JSONDecodeError):
         print('error retrieving json')
 food_ent_df = pd.DataFrame(food_ent_list)
-food_ent_df.to_csv('food_entity_df_newdata_mach3.csv')
+food_ent_df.to_csv('food_entity_df_stratified_mach2.csv')
 
