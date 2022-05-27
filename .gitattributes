@@ -1,1 +1,2 @@
 nlp_package* filter=lfs diff=lfs merge=lfs -text
+dina* filter=lfs diff=lfs merge=lfs -text
